@@ -18,7 +18,9 @@ class LearningAgent(Agent):
         self.Q = dict()          # Create a Q-table which will be a dictionary of tuples
         self.epsilon = epsilon   # Random exploration factor
         self.alpha = alpha       # Learning factor
-
+        self.trials_completed = 0
+        self.a = .005
+        self.optimized = True
         ###########
         ## TO DO ##
         ###########
@@ -39,8 +41,19 @@ class LearningAgent(Agent):
         # Update epsilon using a decay function of your choice
         # Update additional class parameters as needed
         # If 'testing' is True, set epsilon and alpha to 0
+        if testing == True:
+            self.epsilon = 0
+            self.alpha = 0
+        else:
+            if self.optimized == True:
+                trials_completed = self.trials_completed
+                a = self.a
+                self.epsilon = float(1)/math.exp(float( a * trials_completed) )
 
-        return None
+                self.trials_completed += 1
+            else:
+                self.epsilon = self.epsilon - .05
+        return
 
     def build_state(self):
         """ The build_state function is called when the agent requests data from the 
@@ -55,6 +68,10 @@ class LearningAgent(Agent):
         ########### 
         ## TO DO ##
         ###########
+        bitmap_9 = self.sense_light( bitmap_9, inputs )
+        bitmap_9 = self.sense_surroundings(bitmap_9, inputs)
+        bitmap_9 = self.consider_direction(bitmap_9, waypoint)
+
         
         # NOTE : you are not allowed to engineer eatures outside of the inputs available.
         # Because the aim of this project is to teach Reinforcement Learning, we have placed 
@@ -62,7 +79,7 @@ class LearningAgent(Agent):
         # With the hand-engineered features, this learning process gets entirely negated.
         
         # Set 'state' as a tuple of relevant data for the agent        
-        state = None
+        state = int(bitmap_9)
 
         return state
 
@@ -76,9 +93,12 @@ class LearningAgent(Agent):
         ###########
         # Calculate the maximum Q-value of all actions for a given state
 
-        maxQ = None
+        action_hash = self.Q[state]
+        maxQaction = max(action_hash.iterkeys(), key=lambda k: action_hash[k])
 
-        return maxQ 
+        maxQ = self.Q[state][maxQaction]
+
+        return ( maxQaction, maxQ )
 
 
     def createQ(self, state):
@@ -110,6 +130,16 @@ class LearningAgent(Agent):
         # When learning, choose a random action with 'epsilon' probability
         # Otherwise, choose an action with the highest Q-value for the current state
         # Be sure that when choosing an action with highest Q-value that you randomly select between actions that "tie".
+         if self.learning == True:
+            if state in self.Q:
+                reward = 1
+            # If it is not, create a new dictionary for that state
+            else:
+                self.Q[state] = {}
+                #   Then, for each action available, set the initial Q-value to 0.0
+                for act in self.valid_actions:
+                    self.Q[state][act] = 0
+
         return action
 
 
@@ -123,6 +153,9 @@ class LearningAgent(Agent):
         ###########
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
+        if self.learning == True:
+            currentQ = self.Q[state][action]
+            self.Q[state][action] = ( reward * self.alpha ) + currentQ*(1-self.alpha)
 
         return
 
